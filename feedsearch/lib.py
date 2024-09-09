@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from requests import Response
 from requests.exceptions import RequestException
 from werkzeug.local import Local, release_local
-from werkzeug.urls import url_parse, url_fix
+from urllib.parse import urlparse, urlunparse, quote, quote_plus, unquote
 
 from .__version__ import __version__
 
@@ -20,6 +20,27 @@ logger = logging.getLogger(__name__)
 bs4_parser = "html.parser"
 
 default_timeout = 3.05
+
+def url_fix(s: str) -> str:
+    """
+    Fix URL based on https://github.com/pallets/werkzeug/blob/2.3.x/src/werkzeug/urls.py
+    """
+
+    # First step is to switch to text processing and to convert
+    # backslashes (which are invalid in URLs anyways) to slashes.  This is
+    # consistent with what Chrome does.
+    s = s.replace("\\", "/")
+
+    # For the specific case that we look like a malformed windows URL
+    # we want to fix this up manually:
+    if s.startswith("file://") and s[7:8].isalpha() and s[8:10] in (":/", "|/"):
+        s = f"file:///{s[7:]}"
+
+    url = urlparse(s)
+    path = quote(url.path, safe="/%+$!*'(),")
+    qs = quote_plus(url.query, safe=":&%=+$!*'(),")
+    anchor = quote_plus(url.fragment, safe=":&%=+$!*'(),")
+    return urlunparse((url.scheme, url.netloc, path, url.params, qs, anchor))
 
 
 def get_session():
@@ -224,7 +245,7 @@ def get_site_root(url: str) -> str:
     Find the root domain of a url
     """
     url = coerce_url(url)
-    parsed = url_parse(url, scheme="http")
+    parsed = urlparse(url, scheme="http")
     return parsed.netloc
 
 

@@ -4,7 +4,7 @@ import re
 
 from typing import List, Set, Dict, Any
 from bs4 import BeautifulSoup, ResultSet
-from werkzeug.urls import url_parse
+from urllib.parse import urlparse
 
 from .lib import get_url, coerce_url, create_soup, get_timeout, get_exceptions
 
@@ -148,7 +148,7 @@ class SiteMeta:
         :return: str
         """
         url = coerce_url(url)
-        parsed = url_parse(url)
+        parsed = urlparse(url)
         domain = "{0}://{1}".format(parsed.scheme, parsed.netloc)
         return domain
 
